@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CryptoTrace — Money Laundering Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060910;
+  --surface: #0d1117;
+  --surface2: #131b26;
+  --border: rgba(0,200,150,0.15);
+  --green: #00c896;
+  --green-dim: rgba(0,200,150,0.08);
+  --red: #ff4060;
+  --red-dim: rgba(255,64,96,0.08);
+  --amber: #ffb020;
+  --amber-dim: rgba(255,176,32,0.08);
+  --text: #e2e8f0;
+  --muted: #6b7280;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  overflow-x: hidden;
+}
+
+/* GRID BACKGROUND */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,200,150,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,200,150,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2.5rem;
+  background: rgba(6,9,16,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+.nav-logo {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--green);
+  letter-spacing: 0.08em;
+}
+.nav-logo span { color: var(--muted); }
+.nav-links { display: flex; gap: 2rem; list-style: none; }
+.nav-links a {
+  font-size: 13px;
+  color: var(--muted);
+  text-decoration: none;
+  letter-spacing: 0.06em;
+  transition: color .2s;
+}
+.nav-links a:hover { color: var(--green); }
+
+/* HERO */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8rem 2.5rem 4rem;
+  z-index: 1;
+  overflow: hidden;
+}
+.hero-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.15em;
+  border: 1px solid rgba(0,200,150,0.3);
+  padding: 4px 12px;
+  border-radius: 2px;
+  margin-bottom: 1.5rem;
+  display: inline-block;
+  animation: fadeUp 0.6s ease both;
+}
+.hero h1 {
+  font-size: clamp(2.8rem, 7vw, 6rem);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  max-width: 900px;
+  animation: fadeUp 0.7s 0.1s ease both;
+}
+.hero h1 em {
+  font-style: normal;
+  color: var(--green);
+  position: relative;
+}
+.hero-sub {
+  font-family: var(--mono);
+  font-size: 14px;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.8;
+  margin-top: 1.5rem;
+  animation: fadeUp 0.7s 0.2s ease both;
+}
+.hero-stats {
+  display: flex;
+  gap: 3rem;
+  margin-top: 3rem;
+  animation: fadeUp 0.7s 0.3s ease both;
+}
+.hero-stat-val {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--green);
+}
+.hero-stat-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-top: 2px;
+}
+.hero-scroll {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 2.5rem;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: fadeUp 1s 0.6s ease both;
+}
+.hero-scroll::before {
+  content: '';
+  width: 32px;
+  height: 1px;
+  background: var(--muted);
+}
+/* Glowing orb */
+.hero-orb {
+  position: absolute;
+  right: -100px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* SECTION COMMON */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 2.5rem;
+}
+.section-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.15em;
+  margin-bottom: 1rem;
+}
+.section-title {
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 1rem;
+}
+.section-sub {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+  max-width: 560px;
+  line-height: 1.8;
+  margin-bottom: 3rem;
+}
+
+/* STAGES */
+#stages { background: var(--surface); }
+.stages-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1px;
+  border: 1px solid var(--border);
+}
+.stage-card {
+  padding: 2.5rem 2rem;
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+  transition: background .3s;
+}
+.stage-card:hover { background: var(--surface2); }
+.stage-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.stage-card.placement::before { background: var(--red); }
+.stage-card.layering::before { background: var(--amber); }
+.stage-card.integration::before { background: var(--green); }
+.stage-num {
+  font-family: var(--mono);
+  font-size: 60px;
+  font-weight: 700;
+  opacity: 0.06;
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  line-height: 1;
+}
+.stage-icon {
+  font-size: 28px;
+  margin-bottom: 1rem;
+}
+.stage-name {
+  font-size: 11px;
+  font-family: var(--mono);
+  letter-spacing: 0.15em;
+  margin-bottom: 0.5rem;
+}
+.stage-card.placement .stage-name { color: var(--red); }
+.stage-card.layering .stage-name { color: var(--amber); }
+.stage-card.integration .stage-name { color: var(--green); }
+.stage-heading { font-size: 1.4rem; font-weight: 800; margin-bottom: 0.75rem; }
+.stage-desc { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.9; }
+.stage-methods {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.method-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+.method-item::before {
+  content: '→';
+  flex-shrink: 0;
+  font-size: 11px;
+}
+.stage-card.placement .method-item::before { color: var(--red); }
+.stage-card.layering .method-item::before { color: var(--amber); }
+.stage-card.integration .method-item::before { color: var(--green); }
+
+/* SIMULATION */
+#simulation { background: var(--bg); }
+.sim-container {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: var(--surface);
+}
+.sim-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.sim-dots { display: flex; gap: 6px; }
+.sim-dot { width: 10px; height: 10px; border-radius: 50%; }
+.sim-dot:nth-child(1) { background: #ff4060; }
+.sim-dot:nth-child(2) { background: #ffb020; }
+.sim-dot:nth-child(3) { background: #00c896; }
+.sim-title { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.sim-body { padding: 2rem; }
+.sim-step-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.step-btn {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .2s;
+  letter-spacing: 0.06em;
+}
+.step-btn:hover { border-color: var(--green); color: var(--green); }
+.step-btn.active { border-color: var(--green); background: var(--green-dim); color: var(--green); }
+.step-btn.red.active { border-color: var(--red); background: var(--red-dim); color: var(--red); }
+.step-btn.amber.active { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+.sim-panel { display: none; }
+.sim-panel.active { display: block; }
+
+/* Flow diagram */
+.flow-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 1.5rem 0;
+}
+.flow-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.flow-node {
+  flex: 1;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface2);
+  transition: all .3s;
+}
+.flow-node:hover { border-color: var(--green); }
+.flow-node-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.flow-node-val {
+  font-size: 14px;
+  font-weight: 700;
+}
+.flow-node-addr {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  word-break: break-all;
+}
+.flow-arrow {
+  flex: 0 0 40px;
+  text-align: center;
+  font-size: 18px;
+  color: var(--muted);
+}
+.flow-arrow.animated { animation: pulse-arrow 1.2s ease-in-out infinite; }
+@keyframes pulse-arrow {
+  0%,100% { color: var(--muted); transform: translateX(0); }
+  50% { color: var(--green); transform: translateX(4px); }
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--mono);
+  font-size: 12px;
+  margin-top: 1rem;
+}
+.tx-table th {
+  text-align: left;
+  padding: 8px 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+.tx-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--muted);
+}
+.tx-table tr:hover td { background: var(--green-dim); color: var(--text); }
+.tx-table .tx-hash { color: #185FA5; }
+.tx-table .tx-amount { color: var(--green); font-weight: 700; }
+.tx-table .tx-flag { color: var(--red); }
+.tx-table .tx-clean { color: var(--green); }
+
+/* Risk meter */
+.risk-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+.risk-box {
+  flex: 1;
+  min-width: 140px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1rem;
+}
+.risk-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  margin-bottom: 6px;
+}
+.risk-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+.risk-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.08);
+  margin-top: 8px;
+  overflow: hidden;
+}
+.risk-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* TECHNIQUES */
+#techniques { background: var(--surface); }
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+.tech-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.75rem;
+  background: var(--bg);
+  position: relative;
+  transition: border-color .3s, transform .3s;
+}
+.tech-card:hover { border-color: var(--green); transform: translateY(-3px); }
+.tech-icon-wrap {
+  width: 40px; height: 40px;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 1rem;
+  font-size: 20px;
+}
+.tech-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.tech-desc { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.8; }
+.tech-risk {
+  display: inline-block;
+  margin-top: 0.75rem;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 2px;
+}
+.risk-high { background: var(--red-dim); color: var(--red); }
+.risk-med { background: var(--amber-dim); color: var(--amber); }
+.risk-low { background: var(--green-dim); color: var(--green); }
+
+/* DETECTION */
+#detection { background: var(--bg); }
+.detection-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+@media (max-width: 700px) { .detection-grid { grid-template-columns: 1fr; } }
+.detect-card {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 2rem;
+  background: var(--surface);
+}
+.detect-icon { font-size: 2rem; margin-bottom: 1rem; }
+.detect-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.5rem; }
+.detect-desc { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.9; }
+.detect-points {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.detect-point {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.detect-point span:first-child { color: var(--green); flex-shrink: 0; }
+
+/* TIMELINE */
+#timeline { background: var(--surface); }
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 700px;
+  position: relative;
+  padding-left: 2rem;
+}
+.timeline-list::before {
+  content: '';
+  position: absolute;
+  left: 7px; top: 8px; bottom: 8px;
+  width: 1px;
+  background: var(--border);
+}
+.tl-item {
+  position: relative;
+  padding: 0 0 2.5rem 2rem;
+}
+.tl-item::before {
+  content: '';
+  position: absolute;
+  left: -2rem; top: 6px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--green);
+  background: var(--bg);
+}
+.tl-year {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--green);
+  letter-spacing: 0.1em;
+  margin-bottom: 4px;
+}
+.tl-event { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.tl-desc { font-family: var(--mono); font-size: 12px; color: var(--muted); line-height: 1.8; }
+
+/* FOOTER */
+footer {
+  position: relative;
+  z-index: 1;
+  padding: 3rem 2.5rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.footer-logo { font-family: var(--mono); font-size: 13px; color: var(--green); }
+.footer-note { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.footer-disclaimer {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  max-width: 400px;
+  line-height: 1.7;
+  text-align: right;
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* SCROLLREVEAL mimicry */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible { opacity: 1; transform: translateY(0); }
+
+/* Highlight terminal style */
+.terminal-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.25rem;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.9;
+  color: var(--muted);
+  margin-top: 1rem;
+}
+.terminal-block .g { color: var(--green); }
+.terminal-block .r { color: var(--red); }
+.terminal-block .a { color: var(--amber); }
+.terminal-block .b { color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">CRYPTO<span>//</span>TRACE</div>
+  <ul class="nav-links">
+    <li><a href="#stages">Stages</a></li>
+    <li><a href="#simulation">Simulation</a></li>
+    <li><a href="#techniques">Techniques</a></li>
+    <li><a href="#detection">Detection</a></li>
+    <li><a href="#timeline">Timeline</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-orb"></div>
+  <div class="hero-tag">CYBERSECURITY EDUCATION — FORENSIC ANALYSIS</div>
+  <h1>How dirty crypto<br>becomes <em>clean</em></h1>
+  <p class="hero-sub">
+    An interactive deep-dive into cryptocurrency money laundering — the techniques, the flows, and the forensic methods used to detect them. Built for security researchers and students.
+  </p>
+  <div class="hero-stats">
+    <div>
+      <div class="hero-stat-val">$8.6B</div>
+      <div class="hero-stat-label">LAUNDERED IN 2022</div>
+    </div>
+    <div>
+      <div class="hero-stat-val">3</div>
+      <div class="hero-stat-label">CORE STAGES</div>
+    </div>
+    <div>
+      <div class="hero-stat-val">40+</div>
+      <div class="hero-stat-label">OBFUSCATION METHODS</div>
+    </div>
+  </div>
+  <div class="hero-scroll">scroll to explore</div>
+</section>
+
+<!-- STAGES -->
+<section id="stages">
+  <div class="section-tag">// 01 — CORE STAGES</div>
+  <h2 class="section-title">The three-stage<br>laundering model</h2>
+  <p class="section-sub">Every money laundering operation — crypto or fiat — follows the same fundamental architecture. Here's how each stage works on-chain.</p>
+
+  <div class="stages-grid reveal">
+    <!-- Placement -->
+    <div class="stage-card placement">
+      <div class="stage-num">01</div>
+      <div class="stage-icon">💰</div>
+      <div class="stage-name">PLACEMENT</div>
+      <h3 class="stage-heading">Entering the system</h3>
+      <p class="stage-desc">Criminal proceeds are converted into cryptocurrency to enter the formal financial system. This is the highest-risk stage — the moment of greatest exposure.</p>
+      <div class="stage-methods">
+        <div class="method-item">P2P exchanges with no KYC requirements</div>
+        <div class="method-item">Cryptocurrency ATMs in unregulated jurisdictions</div>
+        <div class="method-item">Corrupt money service businesses (MSBs)</div>
+        <div class="method-item">Structuring: breaking large amounts into small buys</div>
+        <div class="method-item">Gift cards → crypto conversion chains</div>
+      </div>
+    </div>
+    <!-- Layering -->
+    <div class="stage-card layering">
+      <div class="stage-num">02</div>
+      <div class="stage-icon">🔀</div>
+      <div class="stage-name">LAYERING</div>
+      <h3 class="stage-heading">Obscuring the trail</h3>
+      <p class="stage-desc">A complex web of transactions is created to distance funds from their source. Blockchain forensics tools target this stage — it leaves the most data.</p>
+      <div class="stage-methods">
+        <div class="method-item">Chain-hopping: moving funds across multiple blockchains</div>
+        <div class="method-item">Mixers &amp; tumblers: pooling and redistributing funds</div>
+        <div class="method-item">Privacy coins: Monero, Zcash conversion</div>
+        <div class="method-item">DeFi protocols: automated, pseudonymous swaps</div>
+        <div class="method-item">Nested exchange accounts and shell wallets</div>
+      </div>
+    </div>
+    <!-- Integration -->
+    <div class="stage-card integration">
+      <div class="stage-num">03</div>
+      <div class="stage-icon">✅</div>
+      <div class="stage-name">INTEGRATION</div>
+      <h3 class="stage-heading">Re-entering legitimacy</h3>
+      <p class="stage-desc">Funds re-enter the legitimate economy with a plausible cover story. Once integrated, tracing the origin becomes extremely difficult.</p>
+      <div class="stage-methods">
+        <div class="method-item">Real estate purchases via crypto-friendly jurisdictions</div>
+        <div class="method-item">Luxury goods, NFTs and digital asset flipping</div>
+        <div class="method-item">Shell company invoicing and trade manipulation</div>
+        <div class="method-item">OTC broker withdrawals to clean bank accounts</div>
+        <div class="method-item">Crypto lending platforms as liquidity laundering</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SIMULATION -->
+<section id="simulation">
+  <div class="section-tag">// 02 — LIVE SIMULATION</div>
+  <h2 class="section-title">Transaction flow<br>simulation</h2>
+  <p class="section-sub">Step through a simulated $500K laundering operation. Each stage shows real on-chain patterns used by forensic investigators.</p>
+
+  <div class="sim-container reveal">
+    <div class="sim-toolbar">
+      <div class="sim-dots">
+        <div class="sim-dot"></div><div class="sim-dot"></div><div class="sim-dot"></div>
+      </div>
+      <div class="sim-title">cryptotrace_sim_v2 — live session</div>
+      <div style="font-family:var(--mono);font-size:11px;color:var(--green)">● RUNNING</div>
+    </div>
+    <div class="sim-body">
+      <div class="sim-step-nav">
+        <button class="step-btn red active" onclick="showPanel('p1',this)" data-color="red">01 PLACEMENT</button>
+        <button class="step-btn amber" onclick="showPanel('p2',this)" data-color="amber">02 LAYERING</button>
+        <button class="step-btn" onclick="showPanel('p3',this)" data-color="green">03 INTEGRATION</button>
+      </div>
+
+      <!-- PLACEMENT PANEL -->
+      <div class="sim-panel active" id="p1">
+        <div class="terminal-block">
+<span class="g">$</span> trace --wallet 0x4f2a8c1d...d19c --mode=forensic<br>
+<span class="a">INITIATING SCAN</span>  Blockchain: Bitcoin + ETH<br>
+<span class="r">ALERT</span>         Source funds: unregistered P2P exchange<br>
+<span class="b">TX_001</span>        $500,000 USD → 4.12 BTC (rate: $121,359/BTC)<br>
+<span class="r">FLAG</span>          Large round-number purchase — structuring risk HIGH<br>
+<span class="r">FLAG</span>          No KYC verification on sending address<br>
+<span class="g">CHAIN</span>         Bitcoin mainnet confirmed, 3 confirmations
+        </div>
+        <div class="flow-diagram" style="margin-top:1.5rem">
+          <div class="flow-row">
+            <div class="flow-node" style="border-color:var(--red)">
+              <div class="flow-node-label">ORIGIN</div>
+              <div class="flow-node-val" style="color:var(--red)">Cash / Proceeds</div>
+              <div class="flow-node-addr">$500,000 — drug trafficking</div>
+            </div>
+            <div class="flow-arrow animated">→</div>
+            <div class="flow-node">
+              <div class="flow-node-label">P2P EXCHANGE (no KYC)</div>
+              <div class="flow-node-val">4.12 BTC</div>
+              <div class="flow-node-addr">LocalBitcoins clone / Telegram OTC</div>
+            </div>
+            <div class="flow-arrow animated">→</div>
+            <div class="flow-node">
+              <div class="flow-node-label">SUSPECT WALLET</div>
+              <div class="flow-node-val">0x4f2a...d19c</div>
+              <div class="flow-node-addr">Freshly created wallet, no history</div>
+            </div>
+          </div>
+        </div>
+        <div class="risk-row">
+          <div class="risk-box"><div class="risk-label">DETECTION RISK</div><div class="risk-value" style="color:var(--red)">CRITICAL</div><div class="risk-bar"><div class="risk-fill" style="width:95%;background:var(--red)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">TRACEABILITY</div><div class="risk-value" style="color:var(--green)">HIGH</div><div class="risk-bar"><div class="risk-fill" style="width:88%;background:var(--green)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">WALLETS CREATED</div><div class="risk-value">2</div><div class="risk-bar"><div class="risk-fill" style="width:20%;background:var(--muted)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">AMOUNT MOVED</div><div class="risk-value" style="color:var(--red)">$500K</div><div class="risk-bar"><div class="risk-fill" style="width:100%;background:var(--red)"></div></div></div>
+        </div>
+      </div>
+
+      <!-- LAYERING PANEL -->
+      <div class="sim-panel" id="p2">
+        <div class="terminal-block">
+<span class="g">$</span> trace --follow-hops --depth=6 0x4f2a...d19c<br>
+<span class="a">LAYERING DETECTED</span>  Complex multi-hop pattern identified<br>
+<span class="b">HOP 1</span>  BTC → ETH via unregulated swap (Tornado Cash fork)<br>
+<span class="b">HOP 2</span>  ETH split to 12 wallets (avg: $41,666 each)<br>
+<span class="b">HOP 3</span>  Each wallet → Monero (XMR) conversion<br>
+<span class="b">HOP 4</span>  XMR → DAI stablecoin via privacy DEX<br>
+<span class="r">MIXER</span>  Tornado Cash interaction detected at hop 1<br>
+<span class="r">FLAG</span>   Structuring pattern: sub-$50K splits evade CTR
+        </div>
+        <table class="tx-table" style="margin-top:1.5rem">
+          <thead>
+            <tr>
+              <th>TX HASH</th><th>FROM</th><th>TO</th><th>AMOUNT</th><th>METHOD</th><th>FLAG</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="tx-hash">0xa4b2...f019</td><td>0x4f2a...d19c</td><td>Tornado</td><td class="tx-amount">4.12 BTC</td><td>Mixer</td><td class="tx-flag">⚑ HIGH</td></tr>
+            <tr><td class="tx-hash">0xd92c...3a1e</td><td>Tornado</td><td>12 wallets</td><td class="tx-amount">~$41K×12</td><td>Structuring</td><td class="tx-flag">⚑ HIGH</td></tr>
+            <tr><td class="tx-hash">0x1b8f...c741</td><td>Multi</td><td>XMR</td><td class="tx-amount">$497K</td><td>Chain-hop</td><td class="tx-flag">⚑ MED</td></tr>
+            <tr><td class="tx-hash">0x77ae...2290</td><td>XMR pool</td><td>DAI</td><td class="tx-amount">$493K</td><td>Privacy DEX</td><td class="tx-flag">⚑ MED</td></tr>
+          </tbody>
+        </table>
+        <div class="risk-row" style="margin-top:1.5rem">
+          <div class="risk-box"><div class="risk-label">DETECTION RISK</div><div class="risk-value" style="color:var(--amber)">MEDIUM</div><div class="risk-bar"><div class="risk-fill" style="width:55%;background:var(--amber)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">TRACEABILITY</div><div class="risk-value" style="color:var(--amber)">LOW</div><div class="risk-bar"><div class="risk-fill" style="width:25%;background:var(--amber)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">WALLETS CREATED</div><div class="risk-value">16</div><div class="risk-bar"><div class="risk-fill" style="width:55%;background:var(--muted)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">FEES LOST</div><div class="risk-value" style="color:var(--red)">~$7K</div><div class="risk-bar"><div class="risk-fill" style="width:14%;background:var(--red)"></div></div></div>
+        </div>
+      </div>
+
+      <!-- INTEGRATION PANEL -->
+      <div class="sim-panel" id="p3">
+        <div class="terminal-block">
+<span class="g">$</span> trace --final-destination --kyc-check 0x9f1d...b220<br>
+<span class="a">INTEGRATION PHASE</span>  Funds re-entering legitimate economy<br>
+<span class="g">TX_FINAL</span>   DAI → USDC via regulated bridge (Coinbase)<br>
+<span class="g">DEST_1</span>     $200K → Real estate LLC (Delaware shell co.)<br>
+<span class="g">DEST_2</span>     $180K → NFT purchases at above-market price<br>
+<span class="g">DEST_3</span>     $113K → OTC broker → clean bank account<br>
+<span class="g">STATUS</span>     Funds now appear as "investment returns"<br>
+<span class="r">NOTE</span>      Blockchain trail broken at Monero conversion point
+        </div>
+        <div class="flow-diagram" style="margin-top:1.5rem">
+          <div class="flow-row">
+            <div class="flow-node">
+              <div class="flow-node-label">DAI STABLECOIN</div>
+              <div class="flow-node-val">$493,000</div>
+              <div class="flow-node-addr">Layered funds — pseudonymous</div>
+            </div>
+            <div class="flow-arrow animated">→</div>
+            <div class="flow-node">
+              <div class="flow-node-label">OTC BROKER</div>
+              <div class="flow-node-val">USD Conversion</div>
+              <div class="flow-node-addr">Regulated exchange with plausible story</div>
+            </div>
+            <div class="flow-arrow animated">→</div>
+            <div class="flow-node" style="border-color:var(--green)">
+              <div class="flow-node-label">CLEAN ASSETS</div>
+              <div class="flow-node-val" style="color:var(--green)">~$486,000</div>
+              <div class="flow-node-addr">Real estate + NFTs + bank account</div>
+            </div>
+          </div>
+        </div>
+        <div class="risk-row" style="margin-top:1.5rem">
+          <div class="risk-box"><div class="risk-label">DETECTION RISK</div><div class="risk-value" style="color:var(--green)">LOW</div><div class="risk-bar"><div class="risk-fill" style="width:20%;background:var(--green)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">TRACEABILITY</div><div class="risk-value" style="color:var(--red)">CRITICAL</div><div class="risk-bar"><div class="risk-fill" style="width:10%;background:var(--red)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">TOTAL LOST IN FEES</div><div class="risk-value">~$14K</div><div class="risk-bar"><div class="risk-fill" style="width:3%;background:var(--muted)"></div></div></div>
+          <div class="risk-box"><div class="risk-label">CLEAN FUNDS</div><div class="risk-value" style="color:var(--green)">$486K</div><div class="risk-bar"><div class="risk-fill" style="width:97%;background:var(--green)"></div></div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- TECHNIQUES -->
+<section id="techniques">
+  <div class="section-tag">// 03 — OBFUSCATION TECHNIQUES</div>
+  <h2 class="section-title">Common laundering<br>techniques</h2>
+  <p class="section-sub">Each technique exploits specific properties of blockchain technology to reduce traceability.</p>
+
+  <div class="tech-grid reveal">
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--red-dim)">🌪</div>
+      <div class="tech-title">Crypto Mixers / Tumblers</div>
+      <p class="tech-desc">Pools funds from multiple users and redistributes equivalent amounts to break on-chain links. Tornado Cash processed $7B+ before OFAC sanctions in 2022.</p>
+      <span class="tech-risk risk-high">DETECTION: HIGH</span>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--amber-dim)">🔗</div>
+      <div class="tech-title">Chain Hopping</div>
+      <p class="tech-desc">Moving assets across multiple blockchains (BTC → ETH → BSC → Solana) using cross-chain bridges. Each hop fragments the forensic trail across different ledgers.</p>
+      <span class="tech-risk risk-med">DETECTION: MEDIUM</span>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--green-dim)">🕵️</div>
+      <div class="tech-title">Privacy Coins</div>
+      <p class="tech-desc">Monero (XMR) uses ring signatures, stealth addresses, and RingCT to make transactions untraceable by design. Zcash shielded pools offer similar properties.</p>
+      <span class="tech-risk risk-low">DETECTION: VERY LOW</span>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--amber-dim)">🏦</div>
+      <div class="tech-title">DeFi Layering</div>
+      <p class="tech-desc">Using Uniswap, Curve, Aave and other protocols for automated swaps. Smart contracts execute without human intermediaries, making intervention points scarce.</p>
+      <span class="tech-risk risk-med">DETECTION: MEDIUM</span>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--red-dim)">🎨</div>
+      <div class="tech-title">NFT Wash Trading</div>
+      <p class="tech-desc">Selling NFTs between self-controlled wallets at inflated prices creates artificial "sale records." The buyer's payment appears as legitimate art investment income.</p>
+      <span class="tech-risk risk-high">DETECTION: HIGH</span>
+    </div>
+    <div class="tech-card">
+      <div class="tech-icon-wrap" style="background:var(--green-dim)">🎰</div>
+      <div class="tech-title">Crypto Gambling Sites</div>
+      <p class="tech-desc">Depositing dirty crypto, gambling small amounts, then withdrawing. Winnings are documented as gambling income. Particularly effective in unregulated jurisdictions.</p>
+      <span class="tech-risk risk-low">DETECTION: LOW</span>
+    </div>
+  </div>
+</section>
+
+<!-- DETECTION -->
+<section id="detection">
+  <div class="section-tag">// 04 — FORENSIC DETECTION</div>
+  <h2 class="section-title">How investigators<br>follow the money</h2>
+  <p class="section-sub">Blockchain analytics firms like Chainalysis and Elliptic use multiple techniques to pierce through obfuscation layers.</p>
+
+  <div class="detection-grid reveal">
+    <div class="detect-card">
+      <div class="detect-icon">🔍</div>
+      <div class="detect-title">Cluster Analysis</div>
+      <p class="detect-desc">Blockchain analytics algorithms group addresses that are controlled by the same entity using heuristics like common-input-ownership and change address detection.</p>
+      <div class="detect-points">
+        <div class="detect-point"><span>✓</span> Common-input ownership heuristic</div>
+        <div class="detect-point"><span>✓</span> Change address fingerprinting</div>
+        <div class="detect-point"><span>✓</span> Timing correlation attacks</div>
+        <div class="detect-point"><span>✓</span> Dust attacks for address revelation</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon">📊</div>
+      <div class="detect-title">Transaction Graph Analysis</div>
+      <p class="detect-desc">Building a directed graph of all transactions. Suspicious patterns emerge: peel chains, fan-out then fan-in structures, and unusually complex routing through many wallets.</p>
+      <div class="detect-points">
+        <div class="detect-point"><span>✓</span> Peel chain detection</div>
+        <div class="detect-point"><span>✓</span> Fan-out / fan-in structuring patterns</div>
+        <div class="detect-point"><span>✓</span> Velocity and volume anomalies</div>
+        <div class="detect-point"><span>✓</span> Dormant wallet activation signals</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon">🤖</div>
+      <div class="detect-title">Machine Learning Models</div>
+      <p class="detect-desc">Supervised ML models trained on known criminal wallets can score new addresses for risk. Features include transaction patterns, counterparty exposure, and timing.</p>
+      <div class="detect-points">
+        <div class="detect-point"><span>✓</span> Risk scoring from VASP exposure</div>
+        <div class="detect-point"><span>✓</span> Anomaly detection on behavioral features</div>
+        <div class="detect-point"><span>✓</span> Mixer interaction flags</div>
+        <div class="detect-point"><span>✓</span> Darknet market address matching</div>
+      </div>
+    </div>
+    <div class="detect-card">
+      <div class="detect-icon">🌐</div>
+      <div class="detect-title">OSINT + KYC Correlation</div>
+      <p class="detect-desc">When funds eventually touch a regulated exchange (cashing out), KYC data becomes available to law enforcement via subpoena. The blockchain record is permanent and retroactive.</p>
+      <div class="detect-points">
+        <div class="detect-point"><span>✓</span> Exchange subpoena for KYC data</div>
+        <div class="detect-point"><span>✓</span> IP address logging at exchanges</div>
+        <div class="detect-point"><span>✓</span> Cross-platform OSINT correlation</div>
+        <div class="detect-point"><span>✓</span> Blockchain is immutable — permanent trail</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section id="timeline">
+  <div class="section-tag">// 05 — CASE HISTORY</div>
+  <h2 class="section-title">Notable cases &<br>regulatory milestones</h2>
+  <p class="section-sub">Real-world precedents that shaped crypto AML enforcement.</p>
+
+  <div class="timeline-list reveal">
+    <div class="tl-item">
+      <div class="tl-year">2013</div>
+      <div class="tl-event">Silk Road Seizure</div>
+      <p class="tl-desc">FBI seized 144,000 BTC from Ross Ulbricht. First major case proving blockchain is a permanent ledger, not an untraceable system — investigators followed 5 years of transactions.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2016</div>
+      <div class="tl-event">Bitfinex Hack ($4.5B)</div>
+      <p class="tl-desc">Hackers stole 119,754 BTC. Despite 5 years of layering attempts across thousands of wallets, blockchain analytics led to arrests in 2022 — demonstrating the durability of on-chain evidence.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2020</div>
+      <div class="tl-event">FinCEN Crypto Guidance</div>
+      <p class="tl-desc">U.S. issued formal AML guidance requiring crypto exchanges to collect KYC for transactions over $3,000 and file SARs for suspicious activity, aligning crypto with banking regulations.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2022</div>
+      <div class="tl-event">Tornado Cash OFAC Sanctions</div>
+      <p class="tl-desc">U.S. Treasury sanctioned Tornado Cash for laundering $7B+ including $455M from Lazarus Group (North Korea). First-ever sanctions on a smart contract, not an individual or company.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2023</div>
+      <div class="tl-event">Binance AML Settlement</div>
+      <p class="tl-desc">Binance paid $4.3B — the largest corporate criminal settlement in U.S. history — for AML failures that allowed laundering by ransomware groups, darknet markets, and sanctioned entities.</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2024</div>
+      <div class="tl-event">MiCA Regulation (EU)</div>
+      <p class="tl-desc">Europe's Markets in Crypto-Assets regulation fully enacted, requiring all crypto VASPs to conduct KYC on transfers above €1,000 and report suspicious transactions — creating an EU-wide forensic framework.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <div class="footer-logo">CRYPTO//TRACE</div>
+    <div class="footer-note" style="margin-top:4px">Cybersecurity Education Platform</div>
+  </div>
+  <div class="footer-disclaimer">
+    This content is produced strictly for educational and cybersecurity research purposes. All transaction data shown is simulated. Understanding these techniques is essential for AML compliance, forensic investigation, and security research.
+  </div>
+</footer>
+
+<script>
+// Panel switching
+function showPanel(id, btn) {
+  document.querySelectorAll('.sim-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.step-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const color = btn.dataset.color || 'green';
+  btn.classList.add('active', color);
+}
+
+// Scroll reveal
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) { e.target.classList.add('visible'); }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
