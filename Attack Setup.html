@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bridge Attack Ronin & Wormhole</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c10;
+  --surface: #0d1117;
+  --surface2: #111820;
+  --border: #1e2d3d;
+  --border2: #253347;
+  --text: #c9d8e8;
+  --text2: #6a8099;
+  --text3: #3d5570;
+  --ronin: #ff4444;
+  --ronin2: #ff6b6b;
+  --ronin-dim: rgba(255,68,68,0.12);
+  --worm: #7c6fff;
+  --worm2: #a89eff;
+  --worm-dim: rgba(124,111,255,0.12);
+  --green: #00d68f;
+  --green-dim: rgba(0,214,143,0.1);
+  --amber: #ffb347;
+  --amber-dim: rgba(255,179,71,0.1);
+  --mono: 'Share Tech Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* GRID BACKGROUND */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 40px 40px;
+  opacity:0.3;
+  pointer-events:none;
+  z-index:0;
+}
+
+/* NAV */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(8,12,16,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: 56px;
+}
+
+.nav-logo {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--green);
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+
+.nav-tabs {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+}
+
+.nav-tab {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 6px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  transition: all .2s;
+  letter-spacing: .04em;
+}
+.nav-tab:hover { color: var(--text); border-color: var(--border2); }
+.nav-tab.active-ronin { color: var(--ronin); border-color: var(--ronin); background: var(--ronin-dim); }
+.nav-tab.active-worm { color: var(--worm); border-color: var(--worm); background: var(--worm-dim); }
+.nav-tab.active-compare { color: var(--green); border-color: var(--green); background: var(--green-dim); }
+
+.total-stolen {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+.total-stolen span { color: var(--ronin2); }
+
+/* PAGES */
+.page { display:none; position:relative; z-index:1; }
+.page.active { display:block; }
+
+/* HERO SECTIONS */
+.hero {
+  padding: 60px 48px 40px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-ronin::after {
+  content:'';
+  position:absolute;
+  top:-60px; right:-60px;
+  width:400px; height:400px;
+  background: radial-gradient(circle, rgba(255,68,68,0.06) 0%, transparent 70%);
+  pointer-events:none;
+}
+.hero-worm::after {
+  content:'';
+  position:absolute;
+  top:-60px; right:-60px;
+  width:400px; height:400px;
+  background: radial-gradient(circle, rgba(124,111,255,0.06) 0%, transparent 70%);
+  pointer-events:none;
+}
+
+.hero-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.label-ronin { color: var(--ronin); }
+.label-worm { color: var(--worm); }
+.label-green { color: var(--green); }
+
+.hero-title {
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 800;
+  line-height: 1.05;
+  margin-bottom: 16px;
+  letter-spacing: -.02em;
+}
+.title-ronin { color: #fff; }
+.title-worm { color: #fff; }
+
+.hero-amount {
+  font-family: var(--mono);
+  font-size: clamp(28px, 4vw, 44px);
+  font-weight: 400;
+  margin-bottom: 20px;
+}
+.amount-ronin { color: var(--ronin); }
+.amount-worm { color: var(--worm); }
+
+.hero-meta {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.meta-item { display:flex; flex-direction:column; gap:3px; }
+.meta-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing:.08em; text-transform:uppercase; }
+.meta-val { font-family: var(--mono); font-size: 14px; color: var(--text); }
+
+/* STATS ROW */
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.stat-cell {
+  background: var(--surface);
+  padding: 20px 24px;
+}
+.stat-cell-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.stat-cell-val {
+  font-family: var(--mono);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+/* MAIN CONTENT */
+.content { padding: 0 48px 80px; }
+
+/* STEPPER */
+.stepper-section { padding: 40px 0 0; }
+
+.stepper-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+.step-counter {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text3);
+}
+
+/* PROGRESS BAR */
+.progress-track {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+.progress-pip {
+  height: 3px;
+  flex: 1;
+  border-radius: 2px;
+  background: var(--border2);
+  transition: background .3s;
+  cursor: pointer;
+}
+.progress-pip.done-ronin { background: rgba(255,68,68,0.4); }
+.progress-pip.done-worm { background: rgba(124,111,255,0.4); }
+.progress-pip.active-ronin { background: var(--ronin); }
+.progress-pip.active-worm { background: var(--worm); }
+
+/* STEP CARD */
+.step-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.step-card-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.step-num-badge {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  border: 1px solid;
+}
+.badge-ronin { color: var(--ronin); border-color: var(--ronin); background: var(--ronin-dim); }
+.badge-worm { color: var(--worm); border-color: var(--worm); background: var(--worm-dim); }
+
+.step-title-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+
+.step-severity {
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 9px;
+  border-radius: 3px;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+.sev-critical { background: rgba(255,68,68,0.15); color: var(--ronin2); border: 1px solid rgba(255,68,68,0.3); }
+.sev-high { background: rgba(255,179,71,0.12); color: var(--amber); border: 1px solid rgba(255,179,71,0.25); }
+.sev-info { background: rgba(0,214,143,0.1); color: var(--green); border: 1px solid rgba(0,214,143,0.2); }
+.sev-bug { background: rgba(124,111,255,0.15); color: var(--worm2); border: 1px solid rgba(124,111,255,0.3); }
+
+.step-card-body {
+  padding: 24px;
+}
+
+.step-desc-text {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text);
+  margin-bottom: 20px;
+}
+
+.step-code-block {
+  background: #050810;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8fb4d4;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.code-comment { color: var(--text3); }
+.code-red { color: var(--ronin); }
+.code-green { color: var(--green); }
+.code-amber { color: var(--amber); }
+.code-purple { color: var(--worm2); }
+.code-white { color: #fff; }
+
+/* SIMULATION PANEL */
+.sim-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+
+.sim-panel-header {
+  padding: 12px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: .06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sim-dot { width:8px; height:8px; border-radius:50%; }
+.dot-red { background: #ff5f57; }
+.dot-yellow { background: #febc2e; }
+.dot-green-sys { background: #28c840; }
+
+.sim-body { padding: 20px; }
+
+/* TRANSACTION VISUALIZER */
+.tx-viz {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 16px 0;
+  flex-wrap: wrap;
+}
+.tx-chain {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-family: var(--mono);
+  font-size: 12px;
+  text-align: center;
+  min-width: 130px;
+}
+.tx-chain-name { font-size: 10px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing:.06em; }
+.tx-chain-val { font-size: 14px; }
+.tx-arrow {
+  flex: 1;
+  min-width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.tx-arrow-line {
+  height: 2px;
+  background: var(--border2);
+  flex: 1;
+  position: relative;
+}
+.tx-arrow-line::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: -4px;
+  border-left: 8px solid var(--border2);
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+}
+.tx-arrow-line.active-r { background: var(--ronin); }
+.tx-arrow-line.active-r::after { border-left-color: var(--ronin); }
+.tx-arrow-line.active-w { background: var(--worm); }
+.tx-arrow-line.active-w::after { border-left-color: var(--worm); }
+.tx-arrow-label {
+  position: absolute;
+  top: -18px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* NAV BUTTONS */
+.step-nav {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 4px;
+}
+.btn {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 8px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid;
+  background: transparent;
+  transition: all .15s;
+  letter-spacing: .04em;
+}
+.btn-ronin { color: var(--ronin); border-color: rgba(255,68,68,0.4); }
+.btn-ronin:hover { background: var(--ronin-dim); border-color: var(--ronin); }
+.btn-worm { color: var(--worm); border-color: rgba(124,111,255,0.4); }
+.btn-worm:hover { background: var(--worm-dim); border-color: var(--worm); }
+.btn:disabled { opacity: .3; cursor: default; }
+
+.step-pos-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  flex: 1;
+  text-align: center;
+}
+
+/* TIMELINE */
+.timeline {
+  position: relative;
+  padding-left: 28px;
+}
+.timeline::before {
+  content:'';
+  position:absolute;
+  left:8px; top:8px; bottom:8px;
+  width:1px;
+  background: var(--border2);
+}
+.tl-item {
+  position: relative;
+  margin-bottom: 24px;
+  padding-bottom: 0;
+}
+.tl-dot {
+  position: absolute;
+  left: -24px;
+  top: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+.tl-dot-ronin { border-color: var(--ronin); background: var(--ronin-dim); }
+.tl-dot-worm { border-color: var(--worm); background: var(--worm-dim); }
+.tl-date {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  margin-bottom: 3px;
+  letter-spacing: .04em;
+}
+.tl-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.tl-desc { font-size: 13px; color: var(--text2); line-height: 1.55; }
+
+/* VULNERABILITY TABLE */
+.vuln-table { width:100%; border-collapse:collapse; }
+.vuln-table th {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.vuln-table td {
+  font-size: 13px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  vertical-align: top;
+  line-height: 1.5;
+}
+.vuln-table tr:last-child td { border-bottom: none; }
+.vuln-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* COMPARE PAGE */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+.cg-cell {
+  background: var(--surface);
+  padding: 24px;
+}
+.cg-head {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.cg-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 13px;
+}
+.cg-row:last-child { border-bottom: none; }
+.cg-key { color: var(--text3); font-family: var(--mono); font-size: 12px; }
+.cg-val { color: var(--text); text-align: right; max-width: 200px; }
+
+/* MONEY COUNTER */
+.money-counter-wrap {
+  text-align: center;
+  padding: 48px 24px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 32px;
+}
+.mc-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.mc-value {
+  font-family: var(--mono);
+  font-size: clamp(36px, 7vw, 72px);
+  color: var(--ronin);
+  letter-spacing: -.02em;
+  margin-bottom: 8px;
+}
+.mc-sub {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text3);
+}
+.mc-bar {
+  display: flex;
+  gap: 4px;
+  max-width: 500px;
+  margin: 24px auto 0;
+}
+.mc-bar-seg {
+  height: 6px;
+  border-radius: 3px;
+}
+
+/* ANIMATED COUNTER */
+@keyframes count-up { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+.count-anim { animation: count-up .4s ease forwards; }
+
+/* TICKER */
+.ticker-wrap {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 0;
+  overflow: hidden;
+  margin-bottom: 32px;
+  background: var(--surface2);
+}
+.ticker-inner {
+  display: flex;
+  gap: 48px;
+  white-space: nowrap;
+  animation: ticker 30s linear infinite;
+}
+@keyframes ticker {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.ticker-item {
+  font-family: var(--mono);
+  font-size: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.ticker-sep { color: var(--border2); }
+
+/* SECTIONS */
+.section { margin-top: 40px; }
+.section-hd {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  nav { padding: 0 16px; gap: 16px; }
+  .hero { padding: 40px 20px 28px; }
+  .content { padding: 0 20px 60px; }
+  .compare-grid { grid-template-columns: 1fr; }
+  .tx-viz { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .tx-arrow { transform: rotate(90deg); min-width: 30px; }
+}
+
+/* GLITCH TITLE EFFECT */
+.glitch {
+  position: relative;
+  display: inline-block;
+}
+.glitch::before, .glitch::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+}
+.glitch::before {
+  color: var(--ronin);
+  animation: glitch1 3s infinite;
+  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
+  transform: translate(-2px, 0);
+  opacity: 0;
+}
+.glitch::after {
+  color: var(--worm);
+  animation: glitch2 3s infinite;
+  clip-path: polygon(0 60%, 100% 60%, 100% 100%, 0 100%);
+  transform: translate(2px, 0);
+  opacity: 0;
+}
+@keyframes glitch1 {
+  0%,90%,100%{opacity:0}
+  91%{opacity:0.6;transform:translate(-3px,0)}
+  93%{opacity:0;transform:translate(2px,0)}
+  95%{opacity:0.4;transform:translate(-1px,0)}
+  97%{opacity:0}
+}
+@keyframes glitch2 {
+  0%,90%,100%{opacity:0}
+  92%{opacity:0.5;transform:translate(3px,0)}
+  94%{opacity:0;transform:translate(-2px,0)}
+  96%{opacity:0.3;transform:translate(1px,0)}
+  98%{opacity:0}
+}
+
+/* BLINKING CURSOR */
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+.cursor { display:inline-block; animation: blink 1s step-end infinite; }
+
+/* SCAN LINE */
+@keyframes scan { 0%{transform:translateY(-100%)} 100%{transform:translateY(100vh)} }
+body::after {
+  content:'';
+  position:fixed;
+  left:0; top:0;
+  width:100%;
+  height:2px;
+  background: rgba(0,214,143,0.03);
+  animation: scan 8s linear infinite;
+  pointer-events:none;
+  z-index:9999;
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">// BRIDGE_ATTACK_SIM<span class="cursor">_</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active-ronin" onclick="showPage('ronin', this)">Ronin $625M</button>
+    <button class="nav-tab" onclick="showPage('wormhole', this)">Wormhole $320M</button>
+    <button class="nav-tab" onclick="showPage('compare', this)">Compare & taxonomy</button>
+  </div>
+  <div class="total-stolen">Total stolen: <span>$945M+</span></div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-inner" id="ticker"></div>
+</div>
+
+<!-- ═══════════════════════════════ RONIN PAGE ═══════════════════════════════ -->
+<div class="page active" id="page-ronin">
+
+  <div class="hero hero-ronin">
+    <div class="hero-label label-ronin">// ATTACK_01 — OPERATIONAL SECURITY FAILURE</div>
+    <h1 class="hero-title title-ronin">
+      <span class="glitch" data-text="Ronin Bridge">Ronin Bridge</span><br>
+      Hack
+    </h1>
+    <div class="hero-amount amount-ronin">$625,000,000 stolen</div>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-val">March 23, 2022</div></div>
+      <div class="meta-item"><div class="meta-label">Chain</div><div class="meta-val">Ronin (Ethereum sidechain)</div></div>
+      <div class="meta-item"><div class="meta-label">Protocol</div><div class="meta-val">Axie Infinity bridge</div></div>
+      <div class="meta-item"><div class="meta-label">Root cause</div><div class="meta-val">Validator key compromise + stale permissions</div></div>
+      <div class="meta-item"><div class="meta-label">Detection lag</div><div class="meta-val">6 days</div></div>
+      <div class="meta-item"><div class="meta-label">Attributed to</div><div class="meta-val">Lazarus Group (DPRK)</div></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-cell-label">ETH stolen</div>
+      <div class="stat-cell-val" style="color:var(--ronin)">173,600</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">USDC stolen</div>
+      <div class="stat-cell-val" style="color:var(--ronin2)">25,500,000</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Validators needed</div>
+      <div class="stat-cell-val" style="color:var(--amber)">5 of 9</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Keys compromised</div>
+      <div class="stat-cell-val" style="color:var(--ronin)">5 of 9</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Exploit transactions</div>
+      <div class="stat-cell-val" style="color:var(--text)">2</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Code bug?</div>
+      <div class="stat-cell-val" style="color:var(--green)">None</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ATTACK FLOW VISUALIZER -->
+    <div class="section">
+      <div class="section-hd">// live attack simulation</div>
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <div class="sim-dot dot-red"></div>
+          <div class="sim-dot dot-yellow"></div>
+          <div class="sim-dot dot-green-sys"></div>
+          <span style="margin-left:8px">ronin_bridge_exploit.sh — SIMULATION</span>
+        </div>
+        <div class="sim-body">
+          <div id="ronin-terminal" style="font-family:var(--mono);font-size:12px;line-height:1.9;min-height:180px;color:#8fb4d4;"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-ronin" onclick="runRoninSim()">Run simulation ↗</button>
+            <button class="btn btn-ronin" onclick="clearRoninSim()" style="opacity:.6">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP BY STEP -->
+    <div class="stepper-section">
+      <div class="stepper-header">
+        <div class="section-title">// attack reconstruction — step by step</div>
+        <div class="step-counter" id="ronin-step-counter">1 / 6</div>
+      </div>
+      <div class="progress-track" id="ronin-progress"></div>
+      <div id="ronin-step-card"></div>
+      <div class="step-nav">
+        <button class="btn btn-ronin" id="ronin-prev" onclick="roninStep(-1)">← prev</button>
+        <div class="step-pos-label" id="ronin-pos"></div>
+        <button class="btn btn-ronin" id="ronin-next" onclick="roninStep(1)">next →</button>
+      </div>
+    </div>
+
+    <!-- BRIDGE ARCHITECTURE VIZ -->
+    <div class="section">
+      <div class="section-hd">// how the ronin bridge worked</div>
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <div class="sim-dot dot-red"></div><div class="sim-dot dot-yellow"></div><div class="sim-dot dot-green-sys"></div>
+          <span style="margin-left:8px">bridge_architecture.svg</span>
+        </div>
+        <div class="sim-body" style="padding:28px 20px;">
+          <div style="display:flex;align-items:center;gap:0;overflow-x:auto;padding-bottom:8px;">
+
+            <div class="tx-chain" style="border-color:rgba(255,68,68,0.4);">
+              <div class="tx-chain-name" style="color:var(--ronin2)">Ethereum</div>
+              <div class="tx-chain-val" style="color:#fff">User deposits ETH</div>
+              <div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--text3)">Bridge contract<br>locks tokens</div>
+            </div>
+
+            <div class="tx-arrow" style="min-width:80px;">
+              <div class="tx-arrow-label">lock event emitted</div>
+              <div class="tx-arrow-line active-r" style="flex:1"></div>
+            </div>
+
+            <div class="tx-chain" style="border-color:var(--amber);min-width:150px;">
+              <div class="tx-chain-name" style="color:var(--amber)">Validator set</div>
+              <div class="tx-chain-val" style="color:#fff;font-size:12px;">5-of-9 multisig</div>
+              <div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--text3);">Watch + co-sign<br>withdrawal msgs</div>
+            </div>
+
+            <div class="tx-arrow" style="min-width:80px;">
+              <div class="tx-arrow-label">signed VAM</div>
+              <div class="tx-arrow-line active-r" style="flex:1"></div>
+            </div>
+
+            <div class="tx-chain" style="border-color:rgba(255,68,68,0.4);">
+              <div class="tx-chain-name" style="color:var(--ronin2)">Ronin chain</div>
+              <div class="tx-chain-val" style="color:#fff">Mint wETH</div>
+              <div style="margin-top:6px;font-family:var(--mono);font-size:10px;color:var(--text3)">User receives<br>wrapped tokens</div>
+            </div>
+
+          </div>
+
+          <div style="margin-top:24px;padding:14px 16px;background:#050810;border:1px solid var(--border);border-radius:6px;font-family:var(--mono);font-size:12px;line-height:1.8;color:#6a8099;">
+<span class="code-comment">// Vulnerability: attacker obtained 5 real validator keys</span>
+<span class="code-comment">// 4 via spear-phishing + 1 via stale Axie DAO access</span>
+<span class="code-comment">// Contract verified signatures: all valid (they were real keys)</span>
+<span class="code-comment">// No code was exploited — pure operational security failure</span>
+
+<span class="code-amber">attackerKeys</span> = [skyMavis_1, skyMavis_2, skyMavis_3, skyMavis_4, <span class="code-red">axieDAO_via_backdoor</span>]
+<span class="code-amber">contract</span>.withdraw(<span class="code-white">173600 ETH</span>).sign(<span class="code-amber">attackerKeys</span>) <span class="code-green">// ✓ threshold met → APPROVED</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="section">
+      <div class="section-hd">// attack timeline</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">November 2021</div>
+          <div class="tl-title">Sky Mavis granted emergency DAO access</div>
+          <div class="tl-desc">Due to high transaction volume, Sky Mavis was allowed to use Axie DAO's validator node. This was supposed to be temporary — but the permission was never revoked.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">Late 2021 — Early 2022</div>
+          <div class="tl-title">Spear-phishing campaign targets Sky Mavis engineer</div>
+          <div class="tl-desc">Lazarus Group (linked to North Korea) created a fake LinkedIn job offer. An engineer opened a malicious PDF, compromising their device and leaking 4 Sky Mavis validator private keys.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">March 23, 2022 — 06:24 UTC</div>
+          <div class="tl-title">Transaction 1: 173,600 ETH withdrawn</div>
+          <div class="tl-desc">Attacker submits withdrawal with 5 valid signatures. Contract verifies, finds quorum met (5 ≥ 5), releases 173,600 ETH (~$594M at the time).</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">March 23, 2022 — 06:26 UTC</div>
+          <div class="tl-title">Transaction 2: 25.5M USDC withdrawn</div>
+          <div class="tl-desc">A second withdrawal transaction drains the USDC reserves. Both transactions are publicly visible on-chain. Nobody notices for 6 days.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">March 29, 2022</div>
+          <div class="tl-title">Breach discovered — a user reports failed withdrawal</div>
+          <div class="tl-desc">A user attempting to withdraw 5,000 ETH reports that the bridge has insufficient funds. Sky Mavis investigates and discovers the vault was drained 6 days prior.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-ronin"></div>
+          <div class="tl-date">April 2022 — onwards</div>
+          <div class="tl-title">FBI attributes hack to Lazarus Group (DPRK)</div>
+          <div class="tl-desc">The US Treasury sanctioned the attacker's Ethereum address. Sky Mavis raised $150M to reimburse users. The bridge was relaunched with HSM key storage and 12-of-17 validator threshold.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ WORMHOLE PAGE ═══════════════════════════════ -->
+<div class="page" id="page-wormhole">
+
+  <div class="hero hero-worm">
+    <div class="hero-label label-worm">// ATTACK_02 — SIGNATURE VERIFICATION BYPASS</div>
+    <h1 class="hero-title title-worm">
+      <span class="glitch" data-text="Wormhole">Wormhole</span><br>
+      Bridge Hack
+    </h1>
+    <div class="hero-amount amount-worm">$320,000,000 stolen</div>
+    <div class="hero-meta">
+      <div class="meta-item"><div class="meta-label">Date</div><div class="meta-val">February 2, 2022</div></div>
+      <div class="meta-item"><div class="meta-label">Chain</div><div class="meta-val">Solana ↔ Ethereum</div></div>
+      <div class="meta-item"><div class="meta-label">Asset minted</div><div class="meta-val">120,000 whETH from nothing</div></div>
+      <div class="meta-item"><div class="meta-label">Root cause</div><div class="meta-val">Missing account owner check in Solana program</div></div>
+      <div class="meta-item"><div class="meta-label">Fix</div><div class="meta-val">One line of code</div></div>
+      <div class="meta-item"><div class="meta-label">Backstop</div><div class="meta-val">Jump Crypto replenished $320M</div></div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-cell-label">whETH minted</div>
+      <div class="stat-cell-val" style="color:var(--worm)">120,000</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">ETH deposited</div>
+      <div class="stat-cell-val" style="color:var(--green)">0</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Guardians needed</div>
+      <div class="stat-cell-val" style="color:var(--text)">13 of 19</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Guardians fooled</div>
+      <div class="stat-cell-val" style="color:var(--worm)">All (bypassed)</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Lines of fix</div>
+      <div class="stat-cell-val" style="color:var(--green)">1</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-cell-label">Code bug?</div>
+      <div class="stat-cell-val" style="color:var(--ronin)">Yes</div>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- EXPLOIT CODE DIFF -->
+    <div class="section">
+      <div class="section-hd">// the bug — vulnerable vs fixed code</div>
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <div class="sim-dot dot-red"></div><div class="sim-dot dot-yellow"></div><div class="sim-dot dot-green-sys"></div>
+          <span style="margin-left:8px">verify_signatures.rs — DIFF VIEW</span>
+        </div>
+        <div class="sim-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--ronin);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:4px 8px;background:rgba(255,68,68,0.08);border-radius:3px;display:inline-block;">VULNERABLE — before patch</div>
+              <div class="step-code-block" style="font-size:11px;">
+<span class="code-comment">// verify_signatures()</span>
+<span class="code-comment">// Solana program — Wormhole</span>
+
+fn verify_signatures(
+  ctx: Context&lt;VerifySigs&gt;,
+  data: VerifySignaturesData,
+) {
+  <span class="code-comment">// reads instruction sysvar</span>
+  let ix_sysvar = &amp;ctx
+    .accounts
+    .instruction_sysvar;
+
+  <span class="code-red">//  NO OWNER CHECK</span>
+  <span class="code-red">// attacker passes fake account</span>
+  <span class="code-red">// at any address they control</span>
+
+  let sig_data = load_instruction_at(
+    0, ix_sysvar  <span class="code-red">// ← not verified!</span>
+  )?;
+
+  <span class="code-comment">// reads fake data → returns Ok</span>
+  verify(sig_data)?;
+  Ok(())
+}</div>
+            </div>
+            <div>
+              <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;padding:4px 8px;background:rgba(0,214,143,0.08);border-radius:3px;display:inline-block;">FIXED — after patch</div>
+              <div class="step-code-block" style="font-size:11px;">
+<span class="code-comment">// verify_signatures()</span>
+<span class="code-comment">// Solana program — Wormhole</span>
+
+fn verify_signatures(
+  ctx: Context&lt;VerifySigs&gt;,
+  data: VerifySignaturesData,
+) {
+  let ix_sysvar = &amp;ctx
+    .accounts
+    .instruction_sysvar;
+
+  <span class="code-green">//  ONE LINE FIX</span>
+  <span class="code-green">// check account is owned by</span>
+  <span class="code-green">// the REAL secp256k1 program</span>
+  <span class="code-green">check_account_owner(</span>
+  <span class="code-green">  ix_sysvar,</span>
+  <span class="code-green">  &amp;sysvar::id())?;</span>
+
+  let sig_data = load_instruction_at(
+    0, ix_sysvar
+  )?;
+
+  verify(sig_data)?;
+  Ok(())
+}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TERMINAL SIM -->
+    <div class="section">
+      <div class="section-hd">// live exploit simulation</div>
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <div class="sim-dot dot-red"></div><div class="sim-dot dot-yellow"></div><div class="sim-dot dot-green-sys"></div>
+          <span style="margin-left:8px">wormhole_exploit.sh — SIMULATION</span>
+        </div>
+        <div class="sim-body">
+          <div id="worm-terminal" style="font-family:var(--mono);font-size:12px;line-height:1.9;min-height:180px;color:#8fb4d4;"></div>
+          <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-worm" onclick="runWormSim()">Run simulation ↗</button>
+            <button class="btn btn-worm" onclick="clearWormSim()" style="opacity:.6">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP BY STEP -->
+    <div class="stepper-section">
+      <div class="stepper-header">
+        <div class="section-title">// attack reconstruction — step by step</div>
+        <div class="step-counter" id="worm-step-counter">1 / 6</div>
+      </div>
+      <div class="progress-track" id="worm-progress"></div>
+      <div id="worm-step-card"></div>
+      <div class="step-nav">
+        <button class="btn btn-worm" id="worm-prev" onclick="wormStep(-1)">← prev</button>
+        <div class="step-pos-label" id="worm-pos"></div>
+        <button class="btn btn-worm" id="worm-next" onclick="wormStep(1)">next →</button>
+      </div>
+    </div>
+
+    <!-- MONEY FLOW VIZ -->
+    <div class="section">
+      <div class="section-hd">// how $320M was extracted</div>
+      <div class="sim-panel">
+        <div class="sim-panel-header">
+          <div class="sim-dot dot-red"></div><div class="sim-dot dot-yellow"></div><div class="sim-dot dot-green-sys"></div>
+          <span style="margin-left:8px">money_flow.svg</span>
+        </div>
+        <div class="sim-body" style="padding:28px 20px;overflow-x:auto;">
+          <div style="display:flex;align-items:center;gap:0;min-width:600px;">
+
+            <div class="tx-chain" style="border-color:rgba(124,111,255,0.4);min-width:140px;">
+              <div class="tx-chain-name" style="color:var(--worm2)">Attacker wallet</div>
+              <div class="tx-chain-val" style="color:#fff;font-size:12px;">Creates fake<br>sysvar account</div>
+            </div>
+
+            <div class="tx-arrow" style="min-width:80px;">
+              <div class="tx-arrow-label" style="color:var(--worm)">fake VAA approved</div>
+              <div class="tx-arrow-line active-w" style="flex:1"></div>
+            </div>
+
+            <div class="tx-chain" style="border-color:rgba(124,111,255,0.4);min-width:140px;">
+              <div class="tx-chain-name" style="color:var(--worm2)">Solana — Wormhole</div>
+              <div class="tx-chain-val" style="color:var(--worm);font-size:13px;">Mints 120K whETH</div>
+              <div style="margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--text3)">0 ETH deposited</div>
+            </div>
+
+            <div class="tx-arrow" style="min-width:80px;">
+              <div class="tx-arrow-label" style="color:var(--worm)">bridge back</div>
+              <div class="tx-arrow-line active-w" style="flex:1"></div>
+            </div>
+
+            <div class="tx-chain" style="border-color:var(--ronin);min-width:140px;">
+              <div class="tx-chain-name" style="color:var(--ronin2)">Ethereum vault</div>
+              <div class="tx-chain-val" style="color:var(--ronin);font-size:13px;">120K real ETH</div>
+              <div style="margin-top:4px;font-family:var(--mono);font-size:10px;color:var(--text3)">drained from reserves</div>
+            </div>
+
+          </div>
+          <div style="margin-top:20px;padding:12px 16px;background:rgba(124,111,255,0.06);border:1px solid rgba(124,111,255,0.2);border-radius:6px;font-family:var(--mono);font-size:12px;color:var(--worm2);">
+            Key insight: the attacker never needed to steal anything — they created 120,000 ETH out of thin air on Solana, then redeemed it for real ETH that legitimate users had deposited.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    <div class="section">
+      <div class="section-hd">// attack timeline</div>
+      <div class="timeline">
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">Early January 2022</div>
+          <div class="tl-title">Bug introduced in Wormhole Solana program upgrade</div>
+          <div class="tl-desc">A code change introduced a missing account owner verification in the verify_signatures() function. The patch was committed to the public GitHub repo but not yet deployed to mainnet.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">February 1, 2022 — ~20:00 UTC</div>
+          <div class="tl-title">Attacker reads the undeployed patch on GitHub</div>
+          <div class="tl-desc">The fix was visible in the public repository before deployment. The attacker read the patch, understood the exact vulnerability it was addressing, and began constructing the exploit before the fix went live.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">February 2, 2022 — 18:24 UTC</div>
+          <div class="tl-title">Exploit deployed: fake sysvar account created</div>
+          <div class="tl-desc">Attacker creates an account they control, populates it with structurally valid (but fake) Guardian signature data, and calls verify_signatures() passing the fake account as the sysvar.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">February 2, 2022 — 18:28 UTC</div>
+          <div class="tl-title">120,000 whETH minted on Solana</div>
+          <div class="tl-desc">The contract accepts the fake VAA as valid and mints 120,000 wrapped ETH (~$320M) directly to the attacker's wallet. No ETH was ever deposited. The signature check was bypassed entirely.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">February 2, 2022 — hours later</div>
+          <div class="tl-title">120,000 whETH bridged back to Ethereum for real ETH</div>
+          <div class="tl-desc">The attacker redeems the counterfeit whETH through the bridge, receiving 120,000 real ETH from the Wormhole Ethereum vault — funds that real users had deposited as collateral.</div>
+        </div>
+        <div class="tl-item">
+          <div class="tl-dot tl-dot-worm"></div>
+          <div class="tl-date">February 3, 2022</div>
+          <div class="tl-title">Jump Crypto replenishes 120,000 ETH — protocol survives</div>
+          <div class="tl-desc">Wormhole's backer Jump Crypto deposits 120,000 ETH to restore the 1:1 backing ratio and prevent whETH holders on Solana from losing their funds. The one-line fix is deployed. Bridge reopens.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ COMPARE PAGE ═══════════════════════════════ -->
+<div class="page" id="page-compare">
+
+  <div class="hero" style="padding:60px 48px 40px;border-bottom:1px solid var(--border);">
+    <div class="hero-label label-green">// ANALYSIS — BRIDGE SECURITY TAXONOMY</div>
+    <h1 style="font-size:clamp(28px,4vw,48px);font-weight:800;letter-spacing:-.02em;margin-bottom:16px;">Cross-chain bridge<br>attacks — full picture</h1>
+    <p style="font-size:15px;color:var(--text2);max-width:640px;line-height:1.7;">$945M stolen across two attacks with completely different root causes. One was an operational failure. One was a code bug. Together they represent the full attack surface of multi-sig bridge architecture.</p>
+  </div>
+
+  <div class="content">
+
+    <!-- TOTAL MONEY COUNTER -->
+    <div class="section">
+      <div class="money-counter-wrap">
+        <div class="mc-label">total value stolen — bridge hacks covered</div>
+        <div class="mc-value" id="mc-val">$0</div>
+        <div class="mc-sub">across Ronin ($625M) + Wormhole ($320M)</div>
+        <div class="mc-bar" style="margin-top:24px;">
+          <div class="mc-bar-seg" style="background:var(--ronin);flex:625;" title="Ronin $625M"></div>
+          <div class="mc-bar-seg" style="background:var(--worm);flex:320;" title="Wormhole $320M"></div>
+        </div>
+        <div style="display:flex;gap:20px;justify-content:center;margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--text3);">
+          <span style="color:var(--ronin)">■</span> Ronin $625M (66%)
+          <span style="color:var(--worm)">■</span> Wormhole $320M (34%)
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDE BY SIDE COMPARE -->
+    <div class="section">
+      <div class="section-hd">// attack comparison</div>
+      <div class="compare-grid">
+        <div class="cg-cell">
+          <div class="cg-head" style="color:var(--ronin)">Ronin — $625,000,000</div>
+          <div class="cg-row"><span class="cg-key">Date</span><span class="cg-val">March 23, 2022</span></div>
+          <div class="cg-row"><span class="cg-key">Chain</span><span class="cg-val">Ronin (ETH sidechain)</span></div>
+          <div class="cg-row"><span class="cg-key">Attack class</span><span class="cg-val" style="color:var(--ronin2)">OpSec / key theft</span></div>
+          <div class="cg-row"><span class="cg-key">Vector</span><span class="cg-val">LinkedIn spear-phishing → malware → 4 keys + stale Axie DAO access</span></div>
+          <div class="cg-row"><span class="cg-key">Code exploited?</span><span class="cg-val" style="color:var(--green)">No — contract worked correctly</span></div>
+          <div class="cg-row"><span class="cg-key">Crypto broken?</span><span class="cg-val" style="color:var(--green)">No — signatures were real</span></div>
+          <div class="cg-row"><span class="cg-key">Detection time</span><span class="cg-val" style="color:var(--ronin2)">6 days</span></div>
+          <div class="cg-row"><span class="cg-key">Attacker</span><span class="cg-val">Lazarus Group (DPRK)</span></div>
+          <div class="cg-row"><span class="cg-key">Transactions</span><span class="cg-val">2 withdrawal txns</span></div>
+          <div class="cg-row"><span class="cg-key">Recovery</span><span class="cg-val">Sky Mavis raised $150M; partial reimbursement</span></div>
+        </div>
+        <div class="cg-cell">
+          <div class="cg-head" style="color:var(--worm)">Wormhole — $320,000,000</div>
+          <div class="cg-row"><span class="cg-key">Date</span><span class="cg-val">February 2, 2022</span></div>
+          <div class="cg-row"><span class="cg-key">Chain</span><span class="cg-val">Solana ↔ Ethereum</span></div>
+          <div class="cg-row"><span class="cg-key">Attack class</span><span class="cg-val" style="color:var(--worm2)">Signature verification bypass</span></div>
+          <div class="cg-row"><span class="cg-key">Vector</span><span class="cg-val">Missing account owner check in Solana program — read undeployed GitHub patch</span></div>
+          <div class="cg-row"><span class="cg-key">Code exploited?</span><span class="cg-val" style="color:var(--ronin2)">Yes — single missing check</span></div>
+          <div class="cg-row"><span class="cg-key">Crypto broken?</span><span class="cg-val" style="color:var(--green)">No — simply bypassed</span></div>
+          <div class="cg-row"><span class="cg-key">Detection time</span><span class="cg-val" style="color:var(--amber)">Hours</span></div>
+          <div class="cg-row"><span class="cg-key">Attacker</span><span class="cg-val">Unknown (sophisticated)</span></div>
+          <div class="cg-row"><span class="cg-key">Transactions</span><span class="cg-val">1 mint + bridge back</span></div>
+          <div class="cg-row"><span class="cg-key">Recovery</span><span class="cg-val">Jump Crypto deposited 120K ETH — full backstop</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VULNERABILITY TAXONOMY TABLE -->
+    <div class="section">
+      <div class="section-hd">// full bridge vulnerability taxonomy</div>
+      <div class="sim-panel" style="overflow:auto;">
+        <table class="vuln-table">
+          <thead>
+            <tr>
+              <th>Vulnerability class</th>
+              <th>Mechanism</th>
+              <th>Real example</th>
+              <th>Loss</th>
+              <th>Severity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="color:var(--ronin2);font-weight:600;">Validator key compromise</td>
+              <td>Attacker steals private keys via phishing/malware. Produces valid signatures without breaking cryptography.</td>
+              <td style="color:var(--text3);font-size:12px;">Ronin (2022)<br>Harmony Horizon (2022)</td>
+              <td style="color:var(--ronin);font-family:var(--mono)">$625M<br>$100M</td>
+              <td><span class="step-severity sev-critical">CRITICAL</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--worm2);font-weight:600;">Signature verification bypass</td>
+              <td>Contract fails to check that the verification function was actually called with real system program. Attacker passes a crafted fake account.</td>
+              <td style="color:var(--text3);font-size:12px;">Wormhole (2022)</td>
+              <td style="color:var(--worm);font-family:var(--mono)">$320M</td>
+              <td><span class="step-severity sev-critical">CRITICAL</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--ronin2);font-weight:600;">Uninitialised state / default trust</td>
+              <td>Trusted root initialised to 0x00. Any message with a zero root passes validation automatically. First exploit triggers copycat avalanche.</td>
+              <td style="color:var(--text3);font-size:12px;">Nomad (2022)</td>
+              <td style="color:var(--ronin);font-family:var(--mono)">$190M</td>
+              <td><span class="step-severity sev-critical">CRITICAL</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber);font-weight:600;">Privileged function access control</td>
+              <td>Admin/upgrade functions lack proper access control. Attacker calls function to replace entire validator set or drain treasury.</td>
+              <td style="color:var(--text3);font-size:12px;">Poly Network (2021)</td>
+              <td style="color:var(--amber);font-family:var(--mono)">$611M</td>
+              <td><span class="step-severity sev-critical">CRITICAL</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber);font-weight:600;">Message replay attack</td>
+              <td>Valid bridge message re-submitted multiple times. Without nonce/uniqueness checks, contract mints tokens repeatedly for the same deposit.</td>
+              <td style="color:var(--text3);font-size:12px;">Various smaller bridges</td>
+              <td style="color:var(--amber);font-family:var(--mono)">varies</td>
+              <td><span class="step-severity sev-high">HIGH</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--amber);font-weight:600;">Stale / unrevoked permissions</td>
+              <td>Temporary emergency access granted and never revoked. Widens the attack surface long after the original need has passed.</td>
+              <td style="color:var(--text3);font-size:12px;">Ronin — Axie DAO node access</td>
+              <td style="color:var(--amber);font-family:var(--mono)">Part of $625M</td>
+              <td><span class="step-severity sev-high">HIGH</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text2);font-weight:600;">Economic security ceiling</td>
+              <td>Bridge holding more TVL than total validator stake creates a rational incentive to steal. Security doesn't scale with bridge size. Structural, unsolved problem.</td>
+              <td style="color:var(--text3);font-size:12px;">Theoretical (Vitalik 2022)</td>
+              <td style="color:var(--text3);font-family:var(--mono)">structural</td>
+              <td><span class="step-severity sev-info">STRUCTURAL</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--worm2);font-weight:600;">ZK circuit soundness bugs</td>
+              <td>ZK bridges use proof systems to verify cross-chain state. Bugs in circuit constraints can allow invalid proofs to pass, silently breaking the security model.</td>
+              <td style="color:var(--text3);font-size:12px;">Theoretical / emerging</td>
+              <td style="color:var(--text3);font-family:var(--mono)">emerging</td>
+              <td><span class="step-severity sev-bug">RESEARCH</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MITIGATIONS -->
+    <div class="section">
+      <div class="section-hd">// defenses and mitigations</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;">
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Key management</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Hardware security modules</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">Store validator keys in HSMs or air-gapped machines. Private keys should never touch internet-connected systems. Prevents spear-phishing from being sufficient alone.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Monitoring</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Real-time withdrawal monitoring</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">Alert on large withdrawals. Circuit breakers that pause the bridge above threshold amounts. Ronin's $625M sat undetected for 6 days because no one was watching on-chain events.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Access control</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Regular permission audits</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">Emergency access should be time-locked and automatically expire. Validator sets must be audited regularly. Never grant "temporary" permissions without a hard revocation date.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Verification</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Account ownership checks</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">On Solana (and similar VMs), always verify that system accounts are owned by the expected program — not just that they have the right address format. The Wormhole fix was literally one check.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Architecture</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Light client / ZK bridges</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">Replace trusted validators with cryptographic proofs. IBC-style light clients and ZK proof bridges eliminate the trusted-party assumption entirely — at the cost of complexity and latency.</div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--green);letter-spacing:.08em;text-transform:uppercase;margin-bottom:10px;">Deployment</div>
+          <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:8px;">Private patch deployment</div>
+          <div style="font-size:13px;color:var(--text2);line-height:1.6;">Never push security patches to a public repo before deployment. Wormhole's attacker read the undeployed fix on GitHub and exploited the bug before the patch went live — a critical ops failure.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════ DATA ═══════════════════════
+
+const RONIN_STEPS = [
+  {
+    title: "The setup: Axie Infinity's Ronin bridge",
+    severity: "INFO",
+    desc: "Sky Mavis built Axie Infinity on Ronin — a custom Ethereum sidechain optimised for gaming. To move ETH and USDC onto Ronin, users deposited through the Ronin Bridge contract. Withdrawals required a 5-of-9 multisig from validators: 4 Sky Mavis nodes and 5 third-party nodes including one operated by Axie DAO. The bridge held over $600M in user funds.",
+    code: `// Ronin Bridge withdrawal logic (simplified)
+function withdraw(uint amount, address to, bytes[] signatures) {
+    require(signatures.length >= THRESHOLD, "insufficient sigs");
+    require(verifySignatures(signatures), "invalid sigs");    
+    // ← contract is correct and working
+    token.transfer(to, amount);  // release funds
+}
+
+// Validator config:
+THRESHOLD = 5  // need 5 of 9
+validators = [skyMavis_1, skyMavis_2, skyMavis_3, skyMavis_4,
+              axieDAO, thirdParty_1, thirdParty_2, ...]`
+  },
+  {
+    title: "November 2021: stale permissions left open",
+    severity: "HIGH",
+    desc: "Due to unusually high transaction volume in November 2021, Sky Mavis was temporarily granted access to sign on behalf of the Axie DAO validator node — to help process the backlog. This was explicitly described as an emergency measure. After the backlog cleared, the permission was never removed. The Axie DAO validator effectively became a Sky Mavis-controlled node, shrinking the real decentralisation from 9 parties down to 5.",
+    code: `// November 2021 — Axie DAO grants Sky Mavis emergency access
+axieDAO_validator.addAuthorised(skyMavis_signer); // ← temporary
+
+// ... weeks pass ... months pass ...
+
+// Permission NEVER REVOKED
+// Attack surface: attacker who compromises Sky Mavis
+// effectively controls: [skyMavis_1, 2, 3, 4] + [axieDAO via backdoor]
+// = 5 keys = exactly the threshold needed`
+  },
+  {
+    title: "The phishing attack: fake LinkedIn job offer",
+    severity: "CRITICAL",
+    desc: "Lazarus Group — North Korea's state-sponsored hacking unit — sent a Sky Mavis senior engineer a highly convincing LinkedIn message posing as a recruiter from a well-known crypto firm. They sent a detailed PDF 'job offer'. When opened, the PDF executed malware that installed a remote access trojan, eventually compromising the engineer's machine and exfiltrating 4 Sky Mavis validator private keys.",
+    code: `// Attack vector:
+// 1. LinkedIn message: "We'd like to offer you a senior role..."
+// 2. Attachment: job_offer_senior_engineer.pdf  ← MALICIOUS
+// 3. PDF executes: shellcode → dropper → RAT
+// 4. RAT exfiltrates:
+//    - skyMavis_validator_1.key  ← stolen
+//    - skyMavis_validator_2.key  ← stolen  
+//    - skyMavis_validator_3.key  ← stolen
+//    - skyMavis_validator_4.key  ← stolen
+//
+// Attacker now controls: 4 Sky Mavis keys
+// Still needs: 1 more key to reach threshold of 5`
+  },
+  {
+    title: "Getting the 5th key: exploiting the stale access",
+    severity: "CRITICAL",
+    desc: "With 4 keys, the attacker was one short of the 5-of-9 threshold. They discovered the stale Axie DAO permission — because the same Sky Mavis infrastructure they'd compromised still had signing authority for the Axie DAO validator. The attacker used the compromised Sky Mavis keys to exercise that permission, effectively giving them signing power over 5 validators.",
+    code: `// Attacker discovers the stale permission:
+axieDAO_validator.isAuthorised(skyMavis_signer) // → TRUE (never revoked!)
+
+// Attacker can now sign as:
+controlled_keys = [
+    skyMavis_1,  // ← compromised via phishing
+    skyMavis_2,  // ← compromised via phishing
+    skyMavis_3,  // ← compromised via phishing
+    skyMavis_4,  // ← compromised via phishing
+    axieDAO      // ← via stale Sky Mavis signing permission
+]
+// len(controlled_keys) = 5  ≥  THRESHOLD = 5  ✓`
+  },
+  {
+    title: "The heist: two transactions, $625M gone",
+    severity: "CRITICAL",
+    desc: "On March 23, 2022, the attacker submitted two withdrawal transactions. The Ronin bridge contract received them, verified the 5 signatures (all cryptographically valid — these were real keys), found the threshold met, and released the funds. The entire theft was two Ethereum-compatible transactions, publicly visible on-chain. No alarm was raised. The vault sat empty for 6 days.",
+    code: `// Transaction 1 — March 23, 2022 06:24 UTC
+bridge.withdraw(
+    amount: 173_600 ETH,   // ≈ $594M
+    to: attacker_wallet,
+    signatures: [sig_skyMavis1, sig_skyMavis2,
+                 sig_skyMavis3, sig_skyMavis4, sig_axieDAO]
+)
+// Contract: 5 sigs ✓ threshold met → APPROVED → 173,600 ETH sent
+
+// Transaction 2 — March 23, 2022 06:26 UTC
+bridge.withdraw(
+    amount: 25_500_000 USDC,
+    to: attacker_wallet,
+    signatures: [same 5 keys]
+)
+// Total stolen: $625M  |  Detected: 6 days later`
+  },
+  {
+    title: "Post-mortem: what should have prevented this",
+    severity: "INFO",
+    desc: "Three independent failures had to align for this to work. If any one had been fixed, the attack would have failed: (1) validator keys stored on network-connected machines were phishable; (2) temporary permissions were never cleaned up; (3) no monitoring meant 6 days of undetected theft. The fix required all three: HSM key storage, automatic permission expiry, and real-time bridge monitoring with withdrawal circuit-breakers.",
+    code: `// FIXES REQUIRED:
+
+// 1. Key storage — use HSMs
+validator_key = HSM.generate_key(air_gapped=True)
+// Private key never touches internet-connected machine
+
+// 2. Permission hygiene — auto-expiry
+axieDAO.addAuthorised(skyMavis_signer, expires=block.timestamp + 7 days)
+// Automatically revoked; no manual action needed
+
+// 3. On-chain monitoring
+if (withdrawal.amount > LARGE_THRESHOLD) {
+    emit ALERT; pause_bridge(); require_manual_review();
+}
+
+// Post-hack: threshold raised to 12-of-17 validators`
+  }
+];
+
+const WORM_STEPS = [
+  {
+    title: "How Wormhole works: Guardians and VAAs",
+    severity: "INFO",
+    desc: "Wormhole is a generic message-passing bridge. To bridge ETH from Ethereum to Solana, you deposit ETH into the Wormhole Ethereum contract. Wormhole's 19 'Guardian' validators observe this on Ethereum, produce a signed attestation called a VAA (Verified Action Approval), and the Solana contract verifies the VAA signatures before minting wrapped ETH (whETH). The security entirely depends on the VAA signature check.",
+    code: `// Normal bridge flow:
+// 1. User deposits 10 ETH on Ethereum
+//    ethereum_contract.deposit(10 ETH, dest=solana_wallet)
+
+// 2. 13+ of 19 Guardians observe event, sign:
+//    VAA = {amount: 10, recipient: solana_wallet, nonce: 42}
+//    signed_VAA = guardians.sign(VAA)  // need 13-of-19
+
+// 3. User submits signed_VAA to Solana:
+//    solana_wormhole.complete_transfer(signed_VAA)
+//    → verify_signatures(signed_VAA)  // ← THIS IS WHERE THE BUG IS
+//    → mint(10 whETH, solana_wallet)`
+  },
+  {
+    title: "How Solana signature verification works",
+    severity: "INFO",
+    desc: "Solana's programming model is different from Ethereum's. To verify a secp256k1 signature on Solana, you don't call a function inline — you instruct the Solana runtime to run the secp256k1 system program as a preceding instruction. That program writes its result to a special account called an 'instruction sysvar'. Your program then reads that sysvar to check whether verification succeeded. The critical question: how does your program know the sysvar it's reading is the real one?",
+    code: `// Solana secp256k1 verification model:
+//
+// Transaction layout:
+// instruction[0]: secp256k1_program.verify(sig_data)
+//   → writes result to sysvar::instructions
+// instruction[1]: your_program.verify_signatures(sysvar_account)
+//   → reads sysvar_account to check if sig was valid
+//
+// The security assumption:
+// Your program MUST verify that sysvar_account
+// is actually the real sysvar::instructions account,
+// owned by the secp256k1 program.
+//
+// Wormhole forgot to check this.`
+  },
+  {
+    title: "The bug: missing account owner check",
+    severity: "CRITICAL",
+    desc: "Wormhole's verify_signatures() function read signature data from a sysvar account parameter — but never checked whether that account was actually owned by the real secp256k1 system program. An attacker could pass in any account they controlled, populated with fake but structurally valid signature data. The function would read it, find the structure valid, and return success — without any Guardian ever having signed anything.",
+    code: `// VULNERABLE CODE (simplified, pre-patch):
+fn verify_signatures(
+    instruction_sysvar: &AccountInfo,  // ← passed by caller
+    guardian_set: &AccountInfo,
+    sig_data: VerifySignaturesData,
+) -> Result<()> {
+    //  MISSING: check that instruction_sysvar is the REAL sysvar
+    //  MISSING: check account owner == sysvar::id()
+
+    // reads whatever account was passed in
+    let instruction = load_instruction_at(0, instruction_sysvar)?;
+    
+    // if the fake account has valid-looking data, this passes
+    verify(instruction, guardian_set)?;
+    Ok(())  // ← attacker gets here with zero real Guardian sigs
+}`
+  },
+  {
+    title: "How the attacker found it: reading GitHub",
+    severity: "CRITICAL",
+    desc: "Wormhole had committed a fix for this exact bug to their public GitHub repository — but hadn't deployed it to mainnet yet. The attacker (or someone who tipped them) read the undeployed patch, understood precisely what vulnerability it was fixing, and built their exploit before the fix went live. This is a catastrophic ops failure: security patches for live protocols should never be pushed to public repos before deployment.",
+    code: `// GitHub commit (public, pre-deployment):
+// commit a2640a3 — "fix: add sysvar account owner check"
+//
+// + check_account_owner(
+// +   instruction_sysvar,
+// +   &sysvar::id(),
+// +   WormholeError::InvalidSysvar
+// + )?;
+//
+// Attacker reads this diff and thinks:
+// "The current mainnet code is MISSING this check.
+//  I can pass a fake sysvar account.
+//  I can mint unlimited whETH."
+//
+// Time between commit and exploit: ~24 hours`
+  },
+  {
+    title: "Executing the exploit: minting $320M from nothing",
+    severity: "CRITICAL",
+    desc: "The attacker created a Solana account they fully controlled, populated it with fake but structurally valid secp256k1 instruction data (formatted to look like 13 Guardian signatures), and called verify_signatures() passing their fake account as the sysvar. The function read the fake data, found it structurally acceptable, and returned success. The Wormhole contract minted 120,000 whETH to the attacker — backed by zero real ETH.",
+    code: `// EXPLOIT EXECUTION:
+
+// Step 1: create a fake sysvar account
+fake_sysvar = attacker.create_account()
+fake_sysvar.write(
+    fake_guardian_signatures(count=13)  // valid format, fake data
+)
+
+// Step 2: call verify_signatures with fake account
+wormhole.verify_signatures(
+    instruction_sysvar: fake_sysvar,  // ← attacker's account
+    ...
+)
+// Contract reads fake data → returns Ok (BUG!)
+
+// Step 3: complete transfer with fraudulent approval
+wormhole.complete_transfer(fake_VAA)
+// → mints 120,000 whETH to attacker
+// → 0 ETH was ever deposited
+// → $320M minted from nothing`
+  },
+  {
+    title: "Redeeming the fake tokens: $320M extracted",
+    severity: "CRITICAL",
+    desc: "With 120,000 whETH on Solana, the attacker bridged them back to Ethereum and redeemed them for real ETH from Wormhole's Ethereum vault. The vault held 120,000 real ETH that legitimate users had deposited. The bridge contract saw a valid redemption request (the whETH was real on Solana's state), released the ETH, and the attacker walked away with $320M. Jump Crypto later replenished the entire 120,000 ETH to keep the protocol solvent.",
+    code: `// Final extraction:
+// attacker holds: 120,000 whETH on Solana (minted from nothing)
+
+// Bridge back to Ethereum:
+wormhole_solana.burn(120_000 whETH) // burn Solana tokens
+// → creates valid redemption VAA
+
+wormhole_ethereum.redeem(redemption_VAA)
+// → transfers 120,000 real ETH from vault to attacker
+// → vault holds user funds from legitimate deposits
+// Total extracted: 120,000 ETH ≈ $320M
+
+// ONE LINE FIX (deployed after exploit):
+// + check_account_owner(ix_sysvar, &sysvar::id())?;
+// That's it. One line. $320M.`
+  }
+];
+
+// ═══════════════════════ STEPPER STATE ═══════════════════════
+
+let roninIdx = 0;
+let wormIdx = 0;
+
+function renderStep(steps, idx, containerId, progressId, counterId, color) {
+  const s = steps[idx];
+  const sevMap = {
+    CRITICAL: `<span class="step-severity sev-critical">CRITICAL</span>`,
+    HIGH: `<span class="step-severity sev-high">HIGH</span>`,
+    INFO: `<span class="step-severity sev-info">INFO</span>`,
+    BUG: `<span class="step-severity sev-bug">BUG</span>`
+  };
+  const badgeClass = color === 'ronin' ? 'badge-ronin' : 'badge-worm';
+
+  document.getElementById(containerId).innerHTML = `
+    <div class="step-card">
+      <div class="step-card-header">
+        <span class="step-num-badge ${badgeClass}">STEP ${idx + 1}</span>
+        <span class="step-title-text">${s.title}</span>
+        ${sevMap[s.severity] || ''}
+      </div>
+      <div class="step-card-body">
+        <p class="step-desc-text">${s.desc}</p>
+        ${s.code ? `<div class="step-code-block">${formatCode(s.code)}</div>` : ''}
+      </div>
+    </div>`;
+
+  const pipColor = color === 'ronin' ? 'active-ronin' : 'active-worm';
+  const doneColor = color === 'ronin' ? 'done-ronin' : 'done-worm';
+  document.getElementById(progressId).innerHTML = steps.map((_, i) =>
+    `<div class="progress-pip ${i === idx ? pipColor : i < idx ? doneColor : ''}" onclick="jumpStep('${color}', ${i})"></div>`
+  ).join('');
+
+  document.getElementById(counterId).textContent = `${idx + 1} / ${steps.length}`;
+}
+
+function formatCode(code) {
+  return code
+    .replace(/\/\/ [^\n]*/g, m => `<span class="code-red">${m}</span>`)
+    .replace(/\/\/ ✓[^\n]*/g, m => `<span class="code-green">${m}</span>`)
+    .replace(/\/\/ [^\n]*/g, m => `<span class="code-green">${m}</span>`)
+    .replace(/\/\/[^\n]*/g, m => `<span class="code-comment">${m}</span>`)
+    .replace(/← (stolen|MALICIOUS|compromised via phishing|never revoked!|passed by caller|attacker's account)/g,
+      m => `<span class="code-red">${m}</span>`)
+    .replace(/← (this is where the bug is|BUG!)/gi, m => `<span class="code-red">${m}</span>`)
+    .replace(/\/\/ → (mints|transfers|vault|Total|attacker)/g, m => `<span class="code-amber">${m}</span>`);
+}
+
+function roninStep(d) {
+  roninIdx = Math.max(0, Math.min(RONIN_STEPS.length - 1, roninIdx + d));
+  renderStep(RONIN_STEPS, roninIdx, 'ronin-step-card', 'ronin-progress', 'ronin-step-counter', 'ronin');
+}
+
+function wormStep(d) {
+  wormIdx = Math.max(0, Math.min(WORM_STEPS.length - 1, wormIdx + d));
+  renderStep(WORM_STEPS, wormIdx, 'worm-step-card', 'worm-progress', 'worm-step-counter', 'worm');
+}
+
+function jumpStep(color, idx) {
+  if (color === 'ronin') { roninIdx = idx; renderStep(RONIN_STEPS, roninIdx, 'ronin-step-card', 'ronin-progress', 'ronin-step-counter', 'ronin'); }
+  else { wormIdx = idx; renderStep(WORM_STEPS, wormIdx, 'worm-step-card', 'worm-progress', 'worm-step-counter', 'worm'); }
+}
+
+// Init steppers
+renderStep(RONIN_STEPS, roninIdx, 'ronin-step-card', 'ronin-progress', 'ronin-step-counter', 'ronin');
+renderStep(WORM_STEPS, wormIdx, 'worm-step-card', 'worm-progress', 'worm-step-counter', 'worm');
+
+// ═══════════════════════ TERMINAL SIMULATIONS ═══════════════════════
+
+function typeLines(containerId, lines, delay = 60) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  let lineIdx = 0;
+  function nextLine() {
+    if (lineIdx >= lines.length) return;
+    const { text, color } = lines[lineIdx++];
+    const span = document.createElement('div');
+    span.style.color = color || '#8fb4d4';
+    el.appendChild(span);
+    let charIdx = 0;
+    const interval = setInterval(() => {
+      span.textContent = text.slice(0, ++charIdx);
+      if (charIdx >= text.length) {
+        clearInterval(interval);
+        setTimeout(nextLine, delay);
+      }
+    }, 18);
+  }
+  nextLine();
+}
+
+const RONIN_TERMINAL = [
+  { text: '$ ./ronin_exploit.sh --simulate', color: '#8fb4d4' },
+  { text: '[*] Initialising Ronin Bridge exploit simulation...', color: '#6a8099' },
+  { text: '[*] Target: Ronin Bridge (Axie Infinity)', color: '#6a8099' },
+  { text: '[*] Required signatures: 5 of 9', color: '#6a8099' },
+  { text: '' },
+  { text: '[PHASE 1] Social engineering...', color: '#ffb347' },
+  { text: '[+] Sent fake LinkedIn job offer to target engineer', color: '#ffb347' },
+  { text: '[+] Malicious PDF opened → RAT deployed', color: '#ff6b6b' },
+  { text: '[+] Exfiltrated: skyMavis_validator_1.key', color: '#ff4444' },
+  { text: '[+] Exfiltrated: skyMavis_validator_2.key', color: '#ff4444' },
+  { text: '[+] Exfiltrated: skyMavis_validator_3.key', color: '#ff4444' },
+  { text: '[+] Exfiltrated: skyMavis_validator_4.key', color: '#ff4444' },
+  { text: '[*] Keys held: 4/5 needed', color: '#ffb347' },
+  { text: '' },
+  { text: '[PHASE 2] Searching for 5th key...', color: '#ffb347' },
+  { text: '[+] Discovered: Axie DAO validator granted to Sky Mavis (Nov 2021)', color: '#ffb347' },
+  { text: '[+] Permission NEVER REVOKED — still active!', color: '#ff4444' },
+  { text: '[+] Sky Mavis keys can sign as Axie DAO validator', color: '#ff4444' },
+  { text: '[!] Keys held: 5/5 — THRESHOLD REACHED', color: '#ff4444' },
+  { text: '' },
+  { text: '[PHASE 3] Executing withdrawals...', color: '#ffb347' },
+  { text: '[>] TX1: withdraw(173600 ETH) — signing with 5 keys...', color: '#8fb4d4' },
+  { text: '[+] Contract: 5 valid signatures ✓ — APPROVED', color: '#ff4444' },
+  { text: '[+] 173,600 ETH transferred to attacker wallet', color: '#ff4444' },
+  { text: '[>] TX2: withdraw(25500000 USDC) — signing...', color: '#8fb4d4' },
+  { text: '[+] 25,500,000 USDC transferred to attacker wallet', color: '#ff4444' },
+  { text: '' },
+  { text: '[!] TOTAL STOLEN: $625,000,000', color: '#ff4444' },
+  { text: '[*] Detection: 6 days (user reported failed withdrawal)', color: '#6a8099' },
+  { text: '[*] Attribution: Lazarus Group (DPRK)', color: '#6a8099' },
+];
+
+const WORM_TERMINAL = [
+  { text: '$ ./wormhole_exploit.sh --simulate', color: '#8fb4d4' },
+  { text: '[*] Initialising Wormhole Bridge exploit simulation...', color: '#6a8099' },
+  { text: '[*] Target: Wormhole Solana <-> Ethereum bridge', color: '#6a8099' },
+  { text: '[*] Vulnerability: missing account owner check in verify_signatures()', color: '#6a8099' },
+  { text: '' },
+  { text: '[PHASE 1] Reconnaissance...', color: '#a89eff' },
+  { text: '[+] Scanning Wormhole public GitHub repo...', color: '#a89eff' },
+  { text: '[+] Found undeployed commit: "fix: add sysvar account owner check"', color: '#a89eff' },
+  { text: '[+] Reading patch diff...', color: '#a89eff' },
+  { text: '[!] Current mainnet is MISSING: check_account_owner(ix_sysvar)', color: '#7c6fff' },
+  { text: '[!] Attack vector identified: pass fake sysvar account', color: '#ff6b6b' },
+  { text: '' },
+  { text: '[PHASE 2] Crafting fake sysvar account...', color: '#a89eff' },
+  { text: '[>] Creating attacker-controlled Solana account...', color: '#8fb4d4' },
+  { text: '[+] Writing fake secp256k1 instruction data (13 fake Guardian sigs)', color: '#a89eff' },
+  { text: '[+] Data structurally valid — format check will pass', color: '#a89eff' },
+  { text: '' },
+  { text: '[PHASE 3] Calling verify_signatures() with fake account...', color: '#a89eff' },
+  { text: '[>] wormhole.verify_signatures(fake_sysvar_account)', color: '#8fb4d4' },
+  { text: '[+] Contract reads fake account (no owner check!)', color: '#ff6b6b' },
+  { text: '[+] Fake data passes structural validation', color: '#ff6b6b' },
+  { text: '[+] verify_signatures() returns Ok — BYPASSED', color: '#ff4444' },
+  { text: '' },
+  { text: '[PHASE 4] Minting and extraction...', color: '#a89eff' },
+  { text: '[>] complete_transfer(fake_VAA) → MINTING 120,000 whETH', color: '#8fb4d4' },
+  { text: '[+] 120,000 whETH minted on Solana (0 ETH deposited)', color: '#ff4444' },
+  { text: '[>] Bridging 120,000 whETH back to Ethereum...', color: '#8fb4d4' },
+  { text: '[+] Wormhole Ethereum vault releases 120,000 real ETH', color: '#ff4444' },
+  { text: '' },
+  { text: '[!] TOTAL STOLEN: $320,000,000', color: '#7c6fff' },
+  { text: '[!] ETH deposited by attacker: $0', color: '#7c6fff' },
+  { text: '[*] Fix: 1 line of Rust — check_account_owner(ix_sysvar, &sysvar::id())', color: '#6a8099' },
+  { text: '[*] Jump Crypto replenished 120,000 ETH to backstop protocol', color: '#6a8099' },
+];
+
+function runRoninSim() { typeLines('ronin-terminal', RONIN_TERMINAL, 40); }
+function clearRoninSim() { document.getElementById('ronin-terminal').innerHTML = ''; }
+function runWormSim() { typeLines('worm-terminal', WORM_TERMINAL, 40); }
+function clearWormSim() { document.getElementById('worm-terminal').innerHTML = ''; }
+
+// ═══════════════════════ PAGE NAV ═══════════════════════
+
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.remove('active-ronin','active-worm','active-compare');
+  });
+  document.getElementById('page-' + name).classList.add('active');
+  if (name === 'ronin') btn.classList.add('active-ronin');
+  else if (name === 'wormhole') btn.classList.add('active-worm');
+  else btn.classList.add('active-compare');
+
+  if (name === 'compare') animateMoney();
+}
+
+// ═══════════════════════ MONEY COUNTER ═══════════════════════
+
+function animateMoney() {
+  const el = document.getElementById('mc-val');
+  if (!el) return;
+  const target = 945000000;
+  const duration = 2000;
+  const start = Date.now();
+  function tick() {
+    const elapsed = Date.now() - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const current = Math.round(target * eased);
+    el.textContent = '$' + current.toLocaleString();
+    if (progress < 1) requestAnimationFrame(tick);
+    else el.textContent = '$945,000,000';
+  }
+  requestAnimationFrame(tick);
+}
+
+// ═══════════════════════ TICKER ═══════════════════════
+
+const tickerItems = [
+  { text: 'RONIN BRIDGE', val: '-$625,000,000', color: 'var(--ronin)' },
+  { text: 'WORMHOLE BRIDGE', val: '-$320,000,000', color: 'var(--worm)' },
+  { text: 'POLY NETWORK', val: '-$611,000,000', color: 'var(--ronin2)' },
+  { text: 'NOMAD BRIDGE', val: '-$190,000,000', color: 'var(--amber)' },
+  { text: 'HARMONY HORIZON', val: '-$100,000,000', color: 'var(--ronin2)' },
+  { text: 'MULTICHAIN BRIDGE', val: '-$126,000,000', color: 'var(--amber)' },
+  { text: 'TOTAL BRIDGE HACKS 2022', val: '$2B+', color: 'var(--ronin)' },
+  { text: 'RONIN VALIDATORS NEEDED', val: '5 of 9', color: 'var(--text2)' },
+  { text: 'WORMHOLE FIX SIZE', val: '1 LINE', color: 'var(--green)' },
+  { text: 'RONIN DETECTION LAG', val: '6 DAYS', color: 'var(--amber)' },
+  { text: 'JUMP CRYPTO BACKSTOP', val: '120,000 ETH', color: 'var(--worm2)' },
+];
+
+const tickerEl = document.getElementById('ticker');
+const tickerContent = [...tickerItems, ...tickerItems].map(item =>
+  `<div class="ticker-item">
+    <span style="color:${item.color};font-family:var(--mono);font-size:12px;">${item.text}</span>
+    <span class="ticker-sep">|</span>
+    <span style="color:var(--text2);font-family:var(--mono);font-size:12px;">${item.val}</span>
+    <span class="ticker-sep" style="margin-left:24px;">///</span>
+  </div>`
+).join('');
+tickerEl.innerHTML = tickerContent;
+</script>
+</body>
+</html>
